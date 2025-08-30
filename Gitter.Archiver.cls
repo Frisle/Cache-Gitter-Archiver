@@ -12,7 +12,7 @@ ClassMethod Archive(fileName As %String = "C:\chat.txt", roomID As %String = "56
 	new $namespace
 	zn "%SYS"
 	do:'##class(Security.SSLConfigs).Exists(..#SSLConfig) ##class(Security.SSLConfigs).Create(..#SSLConfig)
-	
+	zn "USER"
 	set LIMIT = 100 // default limit for messages load. Could not be higher.
 	set file = ##class(%File).%New(fileName)
 	do file.Open("WSN")
@@ -20,7 +20,7 @@ ClassMethod Archive(fileName As %String = "C:\chat.txt", roomID As %String = "56
 	set req.Server = "api.gitter.im"
 	set req.Https = 1
 	set req.SSLConfiguration = ..#SSLConfig
-	set chat = ##class(%Object).$new()
+	set chat = ##class(%Library.DynamicObject).%New()
 	set beforeId = ""
 	set mes = 0
 	do {
@@ -31,19 +31,19 @@ ClassMethod Archive(fileName As %String = "C:\chat.txt", roomID As %String = "56
 			req.Get("/v1/rooms/"_roomID_"/chatMessages?limit="_LIMIT
 			_$case(beforeId '= "", 1:"&beforeId="_beforeId, :""))
 		)
-		set obj = ##class(%AbstractObject).$fromJSON(req.HttpResponse.Data)
-		if (obj.$size() = 0) { continue }
-		for k=obj.$size()-1:-1:0 {
-			set message = obj.$get(k)
+		set obj = ##class(%Library.DynamicAbstractObject).%FromJSON(req.HttpResponse.Data)
+		if (obj.%size() = 0) { continue }
+		for k=obj.%size()-1:-1:0 {
+			set message = obj.%get(k)
 			set mes = mes + 1
-			do chat.$set(mes, message)
+			do chat.%set(mes, message)
 		}
 		write $c(13), "Messages downloaded: ", mes
-		set beforeId = obj.$get(0).id
-	} while (obj.$get(LIMIT-1) '= "") // until the last page is reached
+		set beforeId = obj.%get(0).id
+	} while (obj.%get(LIMIT-1) '= "") // until the last page is reached
 	write ". Writing to "_fileName_"... "
 	for k=mes:-1:1 {
-		set message = chat.$get(k)
+		set message = chat.%get(k)
 		do file.WriteLine(
 			"["_ message.fromUser.displayName_" @ "_message.fromUser.username
 			_"] ["_$piece($replace(message.sent, "T", " "), ".", 1)_"]:"
